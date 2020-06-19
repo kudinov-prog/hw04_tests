@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Профайл пользователя{% endblock %}
+{% block title %}Профайл пользователя {{ profile.get_full_name }}{% endblock %}
 {% block header %}{% endblock %}
 {% block content %}
 
@@ -9,10 +9,10 @@
                     <div class="card">
                             <div class="card-body">
                                     <div class="h2">
-                                        {{ user.get_full_name }}
+                                        {{ profile.get_full_name }}
                                     </div>
                                     <div class="h3 text-muted">
-                                         @{{ user.username }}
+                                         @{{ profile.username }}
                                     </div>
                             </div>
                             <ul class="list-group list-group-flush">
@@ -37,7 +37,7 @@
                     <div class="card mb-3 mt-1 shadow-sm">
                             <div class="card-body">
                                     <p class="card-text">
-                                            <a href={% url 'profile' username=post.author.username %}><strong class="d-block text-gray-dark">@{{ user.username }}</strong></a>
+                                            <a href={% url 'profile' username=post.author.username %}><strong class="d-block text-gray-dark">@{{ post.author }}</strong></a>
                                             {{ post.text }}
                                     </p>
                                     <div class="d-flex justify-content-between align-items-center">
