@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from django.shortcuts import render, get_object_or_404, redirect, reverse
 from .models import Post, Group, User
 
 
@@ -9,7 +10,7 @@ class TestPostsMethods(TestCase):
 
         self.test_text = 'old text'
         self.new_test_text = 'new text'
-        self.test_message_id = '9999'
+        self.test_message_id = '1111'
 
         self.new_user = User.objects.create_user(
           username='test_user', password='12345'
@@ -30,37 +31,54 @@ class TestPostsMethods(TestCase):
         """ После регистрации пользователя создается его персональная 
             страница (profile)
         """
+
         response = self.client.get("/test_user/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["user"].username, self.new_user.username)
+        self.assertEqual(response.context["user"].username,
+                         self.new_user.username)
 
 
     def test_new_post(self):
-        """Авторизованный пользователь может опубликовать пост (new)
+        """ Авторизованный пользователь может опубликовать пост (new)
         """
+
         data = {'text': self.test_text, "group": self.new_group}
         response = self.client.post("/new/", data=data, follow=True)
         self.assertEqual(response.status_code, 200)
 
 
     def test_redirect(self):
-        """Неавторизованный посетитель не может опубликовать пост 
-           (его редиректит на страницу входа)
+        """ Неавторизованный посетитель не может опубликовать пост 
+            (его редиректит на страницу входа)
         """
+
         self.client.logout()
         data = {'text': self.test_text, "group": self.new_group}
         response = self.client.post("/new/", data=data, follow=True)
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, '/auth/login/?next=/new/')
 
 
     def test_new_post_on_all_page(self):
-        """После публикации поста новая запись появляется на главной странице 
-           сайта (index), на персональной странице пользователя (profile), 
-           и на отдельной странице поста (post)"""
-        pass
+        """ После публикации поста новая запись появляется на главной странице 
+            сайта (index), на персональной странице пользователя (profile), 
+            и на отдельной странице поста (post)
+        """
+
+        urls = (reverse('index'),
+                reverse('profile',
+                        kwargs={'username': self.new_user.username}),
+                reverse('post', kwargs={'username': self.new_user.username,
+                        'post_id': self.test_message_id}))
+
+        data = {'text': self.test_text, "group": self.new_group}
+
+        for url in urls:
+          response = self.client.get(url, data=data, follow=True)
+          self.assertContains(response, text=self.new_post.text)
 
 
     def test_user_edit(self):
-        """Авторизованный пользователь может отредактировать свой пост и 
-           его содержимое изменится на всех связанных страницах"""
+        """ Авторизованный пользователь может отредактировать свой пост и 
+            его содержимое изменится на всех связанных страницах
+        """
         pass
