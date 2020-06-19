@@ -45,14 +45,15 @@ def profile(request, username):
     paginator = Paginator(post_list, 2)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
-    return render(request, 'profile.html', {'page': page, 'paginator': paginator, 'post_list': post_list})
+    return render(request, 'profile.html', {'page': page, 'paginator': paginator, 'user': user, 'author': user})
 
 
 def post_view(request, username, post_id):
     user = get_object_or_404(User, username=username)
+    post = Post.objects.filter(id=post_id)
     post_single = Post.objects.filter(id=post_id)
     post_list = Post.objects.filter(author=user)
-    return render(request, 'post.html', {'post_single': post_single, 'post_list': post_list})
+    return render(request, 'post.html', {'post_single': post_single, 'post_list': post_list, 'user': user, 'author': user, 'post': post})
 
 
 @login_required
