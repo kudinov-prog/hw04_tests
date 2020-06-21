@@ -81,4 +81,21 @@ class TestPostsMethods(TestCase):
         """ Авторизованный пользователь может отредактировать свой пост и 
             его содержимое изменится на всех связанных страницах
         """
-        pass
+
+        self.client.post(reverse('post_edit',
+            kwargs={'username': self.new_user.username,
+                    'post_id': self.new_post.id}),
+            data={'text': self.new_test_text, 'group': self.new_group.id},
+                    follow=True)
+
+        urls = (reverse('index'),
+                reverse('profile',
+                    kwargs={'username': self.new_user.username}),
+                reverse('post', kwargs={'username': self.new_user.username,
+                    'post_id': self.test_message_id}))
+        
+        for url in urls:
+            response = self.client.get(url, 
+                data={'text': self.new_test_text, 'group': self.new_group.id},
+                follow=True)
+            self.assertContains(response, text=self.new_test_text)
