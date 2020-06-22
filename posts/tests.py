@@ -1,5 +1,5 @@
-from django.test import TestCase, Client
 from django.shortcuts import render, get_object_or_404, redirect, reverse
+from django.test import TestCase, Client
 from .models import Post, Group, User
 
 
@@ -16,13 +16,17 @@ class TestPostsMethods(TestCase):
           username='test_user', password='12345'
           )
 
-        self.new_group = Group.objects.create(
+        self.test_group = Group.objects.create(
           title='test_group', slug='test_group'
           )
+        self.new_test_group = Group.objects.create(
+          title='new_test_group', slug='new_test_group'
+          )
+
 
         self.new_post = Post.objects.create(
           author=self.new_user,text=self.test_text,
-          group=self.new_group,id=self.test_message_id
+          group=self.test_group,id=self.test_message_id
           )
 
         self.client.force_login(self.new_user)
@@ -33,7 +37,6 @@ class TestPostsMethods(TestCase):
         """
 
         response = self.client.get("/test_user/")
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"].username,
                          self.new_user.username)
 
@@ -42,7 +45,7 @@ class TestPostsMethods(TestCase):
         """ Авторизованный пользователь может опубликовать пост (new)
         """
 
-        data = {'text': self.test_text, "group": self.new_group}
+        data = {'text': self.test_text, "group": self.test_group}
         response = self.client.post("/new/", data=data, follow=True)
         self.assertEqual(response.status_code, 200)
 
@@ -53,7 +56,7 @@ class TestPostsMethods(TestCase):
         """
 
         self.client.logout()
-        data = {'text': self.test_text, "group": self.new_group}
+        data = {'text': self.test_text, "group": self.test_group}
         response = self.client.post("/new/", data=data, follow=True)
         self.assertRedirects(response, '/auth/login/?next=/new/')
 
@@ -70,7 +73,7 @@ class TestPostsMethods(TestCase):
                 reverse('post', kwargs={'username': self.new_user.username,
                         'post_id': self.test_message_id}))
 
-        data = {'text': self.test_text, "group": self.new_group}
+        data = {'text': self.test_text, "group": self.test_group}
 
         for url in urls:
           response = self.client.get(url, data=data, follow=True)
@@ -85,10 +88,12 @@ class TestPostsMethods(TestCase):
         self.client.post(reverse('post_edit',
             kwargs={'username': self.new_user.username,
                     'post_id': self.new_post.id}),
-            data={'text': self.new_test_text, 'group': self.new_group.id},
+            data={'text': self.new_test_text, 'group': self.new_test_group.id},
                     follow=True)
 
         urls = (reverse('index'),
+                reverse('group_posts',
+                    kwargs={'slug': self.new_test_group.slug}),
                 reverse('profile',
                     kwargs={'username': self.new_user.username}),
                 reverse('post', kwargs={'username': self.new_user.username,
@@ -96,6 +101,6 @@ class TestPostsMethods(TestCase):
         
         for url in urls:
             response = self.client.get(url, 
-                data={'text': self.new_test_text, 'group': self.new_group.id},
+                data={'text': self.new_test_text, 'group': self.test_group.id},
                 follow=True)
             self.assertContains(response, text=self.new_test_text)
