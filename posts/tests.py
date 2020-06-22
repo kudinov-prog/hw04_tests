@@ -80,6 +80,20 @@ class TestPostsMethods(TestCase):
           self.assertContains(response, text=self.new_post.text)
 
 
+    def check_user_group_text(self, url, text, group, author):
+            data = {'text': self.new_test_text, "group": self.new_test_group.id}
+            response = self.client.get(url, data=data, follow=True)
+            paginator = response.context.get('paginator')
+            if paginator is not None:
+                post = response.context['page']
+            else:
+                post = response.context['post']
+                
+            self.assertContains(post.text, text=text)
+            self.assertContains(post.group, text=group)
+            self.assertContains(post.author, text=author)
+
+
     def test_user_edit(self):
         """ Авторизованный пользователь может отредактировать свой пост и 
             его содержимое изменится на всех связанных страницах
@@ -89,7 +103,7 @@ class TestPostsMethods(TestCase):
             kwargs={'username': self.new_user.username,
                     'post_id': self.new_post.id}),
             data={'text': self.new_test_text, 'group': self.new_test_group.id},
-                    follow=True)
+            follow=True)
 
         urls = (reverse('index'),
                 reverse('group_posts',
@@ -99,8 +113,8 @@ class TestPostsMethods(TestCase):
                 reverse('post', kwargs={'username': self.new_user.username,
                     'post_id': self.test_message_id}))
         
+
         for url in urls:
-            response = self.client.get(url, 
-                data={'text': self.new_test_text, 'group': self.test_group.id},
-                follow=True)
-            self.assertContains(response, text=self.new_test_text)
+            self.check_user_group_text(url, self.new_post.text,
+                                            self.new_post.group,
+                                            self.new_post.author)
