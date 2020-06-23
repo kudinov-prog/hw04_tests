@@ -25,7 +25,7 @@ class TestPostsMethods(TestCase):
 
 
         self.new_post = Post.objects.create(
-          author=self.new_user,text=self.test_text,
+          author=self.new_user, text=self.test_text,
           group=self.test_group,id=self.test_message_id
           )
 
@@ -81,17 +81,16 @@ class TestPostsMethods(TestCase):
 
 
     def check_user_group_text(self, url, text, group, author):
-            data = {'text': self.new_test_text, "group": self.new_test_group.id}
-            response = self.client.get(url, data=data, follow=True)
+            response = self.client.get(url, follow=True)
             paginator = response.context.get('paginator')
             if paginator is not None:
-                post = response.context['page']
+                post = response.context['page'][0]
             else:
                 post = response.context['post']
                 
-            self.assertContains(post.text, text=text)
-            self.assertContains(post.group, text=group)
-            self.assertContains(post.author, text=author)
+            self.assertEqual(post.text, text)
+            self.assertEqual(post.group, group)
+            self.assertEqual(post.author, author)
 
 
     def test_user_edit(self):
@@ -102,18 +101,17 @@ class TestPostsMethods(TestCase):
         self.client.post(reverse('post_edit',
             kwargs={'username': self.new_user.username,
                     'post_id': self.new_post.id}),
-            data={'text': self.new_test_text, 'group': self.new_test_group.id},
+            data={'text': self.new_test_text, 'group': self.new_test_group},
             follow=True)
 
         urls = (reverse('index'),
                 reverse('group_posts',
-                    kwargs={'slug': self.new_test_group.slug}),
+                    kwargs={'slug': self.test_group.slug}),
                 reverse('profile',
                     kwargs={'username': self.new_user.username}),
                 reverse('post', kwargs={'username': self.new_user.username,
-                    'post_id': self.test_message_id}))
+                    'post_id': self.new_post.id}))
         
-
         for url in urls:
             self.check_user_group_text(url, self.new_post.text,
                                             self.new_post.group,
