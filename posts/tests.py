@@ -44,22 +44,46 @@ class TestPostsMethods(TestCase):
         """
 
         data = {'text': self.test_text, "group": self.test_group}
-        response = self.client.post(reverse("new_post"), data=data, follow=True)
-        post = Post.objects.filter(text=self.test_text)
+        response = self.client.post(reverse("new_post"),
+                                    data=data, follow=True)
+
+        post = Post.objects.get(id=self.test_message_id)
+        check_list = (post.text, post.group, post.author)
+
+        for item in check_list:
+            self.assertContains(response, item)
+        
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, post.text)
         
     def test_unauthorized_user_post(self):
         """ Неавторизованный посетитель не может опубликовать пост 
             (его редиректит на страницу входа)
         """
-        posts_count = Post.objects.all().count()
+
         self.client.logout()
+
         data = {'text': self.test_text, "group": self.test_group}
-        response = self.client.post(reverse("new_post"), data=data, follow=True)
-        posts_count_new = Post.objects.all().count()
+        response = self.client.post(reverse("new_post"),
+                                    data=data, follow=True)
+        
+        posts_count = Post.objects.all().count()
+
+        self.assertEqual(posts_count, 1)
         self.assertRedirects(response, '/auth/login/?next=/new/')
-        self.assertEqual(posts_count, posts_count_new)
+
+    def check_post(self, url, text, group, author):
+        
+            response = self.client.get(url, follow=True)
+            paginator = response.context.get('paginator')
+            
+            if paginator is not None:
+                post = response.context['page'][0]
+            else:
+                post = response.context['post']
+                
+            self.assertEqual(post.text, text)
+            self.assertEqual(post.group, group)
+            self.assertEqual(post.author, author)
 
     def test_new_post_on_all_page(self):
         """ После публикации поста новая запись появляется на главной странице 
@@ -70,26 +94,14 @@ class TestPostsMethods(TestCase):
         urls = (reverse('index'),
                 reverse('profile',
                         kwargs={'username': self.new_user.username}),
-                reverse('post', kwargs={'username': self.new_user.username,
-                        'post_id': self.test_message_id}))
-
-        data = {'text': self.test_text, "group": self.test_group}
+                reverse('post',
+                        kwargs={'username': self.new_user.username,
+                                'post_id': self.test_message_id}))
 
         for url in urls:
-          response = self.client.get(url, data=data, follow=True)
-          self.assertContains(response, text=self.new_post.text)
-
-    def check_post(self, url, text, group, author):
-            response = self.client.get(url, follow=True)
-            paginator = response.context.get('paginator')
-            if paginator is not None:
-                post = response.context['page'][0]
-            else:
-                post = response.context['post']
-                
-            self.assertEqual(post.text, text)
-            self.assertEqual(post.group, group)
-            self.assertEqual(post.author, author)
+            self.check_post(url, self.new_post.text,
+                                 self.new_post.group,
+                                 self.new_post.author)
 
     def test_user_edit(self):
         """ Авторизованный пользователь может отредактировать свой пост и 
@@ -113,5 +125,5 @@ class TestPostsMethods(TestCase):
         
         for url in urls:
             self.check_post(url, self.new_post.text,
-                                            self.new_post.group,
-                                            self.new_post.author)
+                                 self.new_post.group,
+                                 self.new_post.author)
