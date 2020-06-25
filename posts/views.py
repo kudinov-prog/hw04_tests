@@ -4,6 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect, reverse
 from .forms import PostForm
 from .models import Post, Group, User
 
+
 def index(request):
     post_list = Post.objects.all()
     paginator = Paginator(post_list, 10)
@@ -57,10 +58,9 @@ def post_view(request, username, post_id):
 
 @login_required
 def post_edit(request, username, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    user = get_object_or_404(User, username=username)
+    post = get_object_or_404(Post, id=post_id, author__username=username)
     post_url = reverse('post', args=(post.author, post_id))
-    if user != request.user:
+    if post.author != request.user:
         return redirect(post_url)
     form = PostForm(request.POST or None, instance=post)
     if form.is_valid():

@@ -23,7 +23,6 @@ class TestPostsMethods(TestCase):
           title='new_test_group', slug='new_test_group'
           )
 
-
         self.new_post = Post.objects.create(
           author=self.new_user, text=self.test_text,
           group=self.test_group,id=self.test_message_id
@@ -40,26 +39,27 @@ class TestPostsMethods(TestCase):
         self.assertEqual(response.context["user"].username,
                          self.new_user.username)
 
-
     def test_new_post(self):
         """ Авторизованный пользователь может опубликовать пост (new)
         """
 
         data = {'text': self.test_text, "group": self.test_group}
-        response = self.client.post("/new/", data=data, follow=True)
+        response = self.client.post(reverse("new_post"), data=data, follow=True)
+        post = Post.objects.filter(text=self.test_text)
         self.assertEqual(response.status_code, 200)
-
-
-    def test_redirect(self):
+        self.assertContains(response, post.text)
+        
+    def test_unauthorized_user_post(self):
         """ Неавторизованный посетитель не может опубликовать пост 
             (его редиректит на страницу входа)
         """
-
+        posts_count = Post.objects.all().count()
         self.client.logout()
         data = {'text': self.test_text, "group": self.test_group}
-        response = self.client.post("/new/", data=data, follow=True)
+        response = self.client.post(reverse("new_post"), data=data, follow=True)
+        posts_count_new = Post.objects.all().count()
         self.assertRedirects(response, '/auth/login/?next=/new/')
-
+        self.assertEqual(posts_count, posts_count_new)
 
     def test_new_post_on_all_page(self):
         """ После публикации поста новая запись появляется на главной странице 
@@ -79,8 +79,7 @@ class TestPostsMethods(TestCase):
           response = self.client.get(url, data=data, follow=True)
           self.assertContains(response, text=self.new_post.text)
 
-
-    def check_user_group_text(self, url, text, group, author):
+    def check_post(self, url, text, group, author):
             response = self.client.get(url, follow=True)
             paginator = response.context.get('paginator')
             if paginator is not None:
@@ -91,7 +90,6 @@ class TestPostsMethods(TestCase):
             self.assertEqual(post.text, text)
             self.assertEqual(post.group, group)
             self.assertEqual(post.author, author)
-
 
     def test_user_edit(self):
         """ Авторизованный пользователь может отредактировать свой пост и 
@@ -106,13 +104,14 @@ class TestPostsMethods(TestCase):
 
         urls = (reverse('index'),
                 reverse('group_posts',
-                    kwargs={'slug': self.test_group.slug}),
+                        kwargs={'slug': self.test_group.slug}),
                 reverse('profile',
-                    kwargs={'username': self.new_user.username}),
-                reverse('post', kwargs={'username': self.new_user.username,
-                    'post_id': self.new_post.id}))
+                        kwargs={'username': self.new_user.username}),
+                reverse('post',
+                        kwargs={'username': self.new_user.username,
+                        'post_id': self.new_post.id}))
         
         for url in urls:
-            self.check_user_group_text(url, self.new_post.text,
+            self.check_post(url, self.new_post.text,
                                             self.new_post.group,
                                             self.new_post.author)
